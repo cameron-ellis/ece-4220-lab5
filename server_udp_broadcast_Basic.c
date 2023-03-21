@@ -12,8 +12,14 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netdb.h>
 
 #define MSG_SIZE 40			// message size
+#define IP_MAX_SIZE 20      // max size of IP address
+
+char * get_wlan0_ip_addr();
 
 void error(const char *msg)
 {
@@ -29,6 +35,7 @@ int main(int argc, char *argv[])
    struct sockaddr_in server;
    struct sockaddr_in addr;
    char buffer[MSG_SIZE];	// to store received messages or messages to be sent.
+   char rasp_ip_addr[IP_MAX_SIZE]; // to store IP address of raspberry pi
 
    if (argc < 2)
    {
@@ -86,3 +93,26 @@ int main(int argc, char *argv[])
 
    return 0;
  }
+
+// get_wlan0_ip_addr
+/*  Function for getting wlan0 IP address of raspberry pi 
+    and returning as a char pointer 
+*/
+char * get_wlan0_ip_addr() {
+    int fd;
+    struct ifreq ifr;
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    
+    /* I want to get an IPv4 IP address */
+    ifr.ifr_addr.sa_family = AF_INET;
+    
+    /* I want IP address attached to "wlan0" */
+    strncpy(ifr.ifr_name, "wlan0", IFNAMSIZ-1);
+    
+    ioctl(fd, SIOCGIFADDR, &ifr);
+    
+    close(fd);
+    
+    return (inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+}
