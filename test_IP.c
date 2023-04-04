@@ -22,7 +22,12 @@ void ip_to_int_arr(char * IP_addr);
 
 int main()
 {
-    char * IP_addr = get_wlan0_ip_addr();
+    char IP_addr[40]; 
+    strncpy(IP_addr, get_wlan0_ip_addr(), 40);
+
+    char message[50] = {"# "};
+
+    printf("%s\n", message);
     
     ip_to_int_arr(IP_addr);
     

@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -68,7 +69,7 @@ int main(int argc, char *argv[])
    	}
 
    // Determine the IP of the raspberry pi
-   rasp_ip_addr = get_wlan0_ip_addr();
+   strncpy(rasp_ip_addr, get_wlan0_ip_addr(), MSG_SIZE);
 
    // Split up IP addr of raspberry pi into integers
    ip_to_int_arr(rasp_ip_addr);
@@ -83,8 +84,19 @@ int main(int argc, char *argv[])
 	   // receive from a client
 	   n = recvfrom(sock, buffer, MSG_SIZE, 0, (struct sockaddr *)&addr, &fromlen);
        if (n < 0)
-    	   error("recvfrom"); 
+    	   error("recvfrom");
 
+       // Compare strings to see if VOTE or WHOIS message was sent 
+       int Case1 = strncmp(buffer, "VOTE", 5);
+       int Case2 = strncmp(buffer, "WHOIS", 5);
+       
+       if (Case1 == 0) {
+            srand(time(0));
+            int rand_num = rand() % 9;
+            char message[50] = {"# "};
+            char copy_rasp_ip = get_wlan0_ip_addr();
+            strcat(message, copy_rasp_ip);
+       }
        printf("Received a datagram. It says: %s", buffer);
 
        // To send a broadcast message, we need to change IP address to broadcast address
