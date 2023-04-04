@@ -20,6 +20,7 @@
 #define IP_MAX_SIZE 20      // max size of IP address
 
 char * get_wlan0_ip_addr();
+void ip_to_int_arr(char * IP_addr);
 
 void error(const char *msg)
 {
@@ -36,6 +37,7 @@ int main(int argc, char *argv[])
    struct sockaddr_in addr;
    char buffer[MSG_SIZE];	// to store received messages or messages to be sent.
    char rasp_ip_addr[IP_MAX_SIZE]; // to store IP address of raspberry pi
+   int rasp_ip_arr[4]; // integer array to hold parts of IP address for raspberry pi
 
    if (argc < 2)
    {
@@ -60,10 +62,16 @@ int main(int argc, char *argv[])
 
    // change socket permissions to allow broadcast
    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &boolval, sizeof(boolval)) < 0)
-   	{
+    {
    		printf("error setting socket options\n");
    		exit(-1);
    	}
+
+   // Determine the IP of the raspberry pi
+   rasp_ip_addr = get_wlan0_ip_addr();
+
+   // Split up IP addr of raspberry pi into integers
+   ip_to_int_arr(rasp_ip_addr);
 
    fromlen = sizeof(struct sockaddr_in);	// size of structure
 
@@ -115,4 +123,25 @@ char * get_wlan0_ip_addr() {
     close(fd);
     
     return (inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+}
+
+// ip_to_int_arr
+/* Function to convert raspberry pi IP address into
+   integer array containing all the parts of the IP
+*/
+void ip_to_int_arr(char * IP_addr) {
+    const char delim[2] = ".";
+    char *token;
+
+    token = strtok(IP_addr, delim);
+    int i = 0;
+
+    while (token != NULL)
+    {
+        rasp_ip_arr[i] = atoi(token);
+        i++;
+        token = strtok(NULL, delim);
+    }
+
+    return;
 }

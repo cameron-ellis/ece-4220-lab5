@@ -16,13 +16,20 @@
  * 
  */
 
+int ip_arr[4];
 char * get_wlan0_ip_addr();
- 
+void ip_to_int_arr(char * IP_addr);
+
 int main()
 {
     char * IP_addr = get_wlan0_ip_addr();
-
-    printf("%s\n", IP_addr);
+    
+    ip_to_int_arr(IP_addr);
+    
+    for (int i = 0; i < 4; i++)
+    {
+        printf("%d\n", ip_arr[i]);
+    }
     
     return 0;
 }
@@ -44,6 +51,27 @@ char * get_wlan0_ip_addr() {
     close(fd);
     
     return (inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+}
+
+// ip_to_int_arr
+/* Function to convert raspberry pi IP address into
+   integer array containing all the parts of the IP
+*/
+void ip_to_int_arr(char * IP_addr) {
+    const char delim[2] = ".";
+    char *token;
+
+    token = strtok(IP_addr, delim);
+    int i = 0;
+
+    while (token != NULL)
+    {
+        ip_arr[i] = atoi(token);
+        i++;
+        token = strtok(NULL, delim);
+    }
+
+    return;
 }
 
 
