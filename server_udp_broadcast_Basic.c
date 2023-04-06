@@ -38,7 +38,12 @@ int main(int argc, char *argv[])
    struct sockaddr_in addr;
    char buffer[MSG_SIZE];	// to store received messages or messages to be sent.
    char rasp_ip_addr[IP_MAX_SIZE]; // to store IP address of raspberry pi
-   int rasp_ip_arr[4]; // integer array to hold parts of IP address for raspberry pi
+   int UQ1[4]; // integer array to hold parts of IP address for raspberry pi
+   int rand_num = 0;
+   int VOTED = 0;
+   int FLAG = 0;
+   int UQ2[4];
+   int recv_num = 0;
 
    if (argc < 2)
    {
@@ -92,23 +97,35 @@ int main(int argc, char *argv[])
        
        if (Case1 == 0) {
             srand(time(0));
-            int rand_num = rand() % 9;
-            char message[50] = {"# "};
+            rand_num = rand() % 10;
+            char message[50];
             char copy_rasp_ip = get_wlan0_ip_addr();
-            strcat(message, copy_rasp_ip);
+            sprintf(message, "# %d.%d.%d.%d %d\n", &UQ1[0], &UQ1[1], &UQ1[2], &UQ1[3], &rand_num);
+            addr.sin_addr.s_addr = inet_addr("128.206.19.255");		// broadcast address
+            sendto(sock, message, 32, 0, (struct sockaddr *)&addr, fromlen);
+            VOTED = 1;
        }
-       printf("Received a datagram. It says: %s", buffer);
+       if (buffer[0] == '#' & VOTED == 1) {
+            sscanf(buffer, "# %d.%d.%d.%d %d\n", &UQ2[0], &UQ2[1], &UQ2[2], &UQ2[3], &recv_num);
+            if (rand_num > recv_num)
+            {
+                FLAG = 1;
+            }
+            if (rand_num < recv_num)
+            {
+                FLAG = 0;
+            }
+            if (rand_num == recv_num)
+            {
 
-       // To send a broadcast message, we need to change IP address to broadcast address
-       // If we don't change it (with the following line of code), the message
-       // would be transmitted to the address from which the message was received.
-	   // You may need to change the address below (check ifconfig)
-       addr.sin_addr.s_addr = inet_addr("128.206.19.255");		// broadcast address
+            } 
+       }
+       if (Case2 == 0 && FLAG == 1)
+       {
 
-       n = sendto(sock, "Got a message. Was it from you?\n", 32, 0,
-    		      (struct sockaddr *)&addr, fromlen);
-       if (n  < 0)
-    	   error("sendto");
+       }
+       
+
    }
 
    return 0;
@@ -150,7 +167,7 @@ void ip_to_int_arr(char * IP_addr) {
 
     while (token != NULL)
     {
-        rasp_ip_arr[i] = atoi(token);
+        UQ1[i] = atoi(token);
         i++;
         token = strtok(NULL, delim);
     }
