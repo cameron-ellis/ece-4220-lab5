@@ -38,12 +38,14 @@ int main(int argc, char *argv[])
    struct sockaddr_in addr;
    char buffer[MSG_SIZE];	// to store received messages or messages to be sent.
    char rasp_ip_addr[IP_MAX_SIZE]; // to store IP address of raspberry pi
+   char copy_rasp_ip_addr[IP_MAX_SIZE]; // to store IP address of raspberry pi
    int UQ1[4]; // integer array to hold parts of IP address for raspberry pi
+   int UQ2[4]; // integer array to hold parts of IP address read from socket
    int rand_num = 0;
    int VOTED = 0;
    int FLAG = 0;
-   int UQ2[4];
    int recv_num = 0;
+   int max_num = -1;
 
    if (argc < 2)
    {
@@ -94,38 +96,64 @@ int main(int argc, char *argv[])
        // Compare strings to see if VOTE or WHOIS message was sent 
        int Case1 = strncmp(buffer, "VOTE", 5);
        int Case2 = strncmp(buffer, "WHOIS", 5);
-       
+       // If vote message is sent, generate your own vote
        if (Case1 == 0) {
-            srand(time(0));
-            rand_num = rand() % 10;
-            char message[50];
-            char copy_rasp_ip = get_wlan0_ip_addr();
-            sprintf(message, "# %d.%d.%d.%d %d\n", &UQ1[0], &UQ1[1], &UQ1[2], &UQ1[3], &rand_num);
+            srand(time(0));    // set seed for random number
+            rand_num = rand() % 10;    // get random number 0-9
+            char message[50];   // string to hold message
+            strncpy(copy_rasp_ip_addr, get_wlan0_ip_addr(), MSG_SIZE);   // get another copy of IP address after splitting up original IP
+            sprintf(message, "# %d.%d.%d.%d %d\n", &UQ1[0], &UQ1[1], &UQ1[2], &UQ1[3], &rand_num);  // concatenate message
             addr.sin_addr.s_addr = inet_addr("128.206.19.255");		// broadcast address
             sendto(sock, message, 32, 0, (struct sockaddr *)&addr, fromlen);
             VOTED = 1;
+            max_num = 0;
        }
+       // If you have voted and you recieve a vote message from another board
        if (buffer[0] == '#' & VOTED == 1) {
             sscanf(buffer, "# %d.%d.%d.%d %d\n", &UQ2[0], &UQ2[1], &UQ2[2], &UQ2[3], &recv_num);
-            if (rand_num > recv_num)
+            if (recv_num > max_num)
             {
-                FLAG = 1;
+                max_num = recv_num; // set new max if recieved number is larger
             }
-            if (rand_num < recv_num)
+            if (rand_num > max_num)
             {
-                FLAG = 0;
+                FLAG = 1; // your rand num is greater, set to master
             }
-            if (rand_num == recv_num)
+            if (rand_num < max_num)
             {
-
+                FLAG = 0; // if your number is less, you're not the master
+            }
+            // Check IPs if random numbers are equal
+            if (rand_num == max_num)
+            {
+                if (UQ1[3] > UQ2[3])
+                {
+                    FLAG = 1; // your IP is Master
+                }
+                if (UQ1[3] < UQ2[3])
+                {
+                    FLAG = 0; // your IP is no Master
+                }
+                if (UQ1[3] == UQ2[3])
+                {
+                    FLAG = 1; // means compared to own IP, so should be the master
+                }
             } 
        }
+       // If WHOIS message is sent and you are the master
        if (Case2 == 0 && FLAG == 1)
        {
-
+            char m_message[50];
+            sprintf(m_message, "Cameron on board with %s is the Master\n", copy_rasp_ip_addr);
+            addr.sin_addr.s_addr = inet_addr("128.206.19.255");		// broadcast address
+            sendto(sock, m_message, 32, 0, (struct sockaddr *)&addr, fromlen);
+            VOTED = 0;
        }
-       
-
+       // If WHOIS message is sent and you are not the master
+       if (Case2 == 0 && FLAG == 0)
+       {
+            VOTED = 0;
+       }
    }
 
    return 0;
@@ -159,18 +187,6 @@ char * get_wlan0_ip_addr() {
    integer array containing all the parts of the IP
 */
 void ip_to_int_arr(char * IP_addr) {
-    const char delim[2] = ".";
-    char *token;
-
-    token = strtok(IP_addr, delim);
-    int i = 0;
-
-    while (token != NULL)
-    {
-        UQ1[i] = atoi(token);
-        i++;
-        token = strtok(NULL, delim);
-    }
-
+    sscanf(IP_addr, "%d.%d.%d.%d\n", &ip_arr[0], &ip_arr[1], &ip_arr[2], &ip_arr[3]);
     return;
 }
