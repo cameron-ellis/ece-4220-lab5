@@ -22,19 +22,15 @@ void ip_to_int_arr(char * IP_addr);
 
 int main()
 {
-    char IP_addr[40]; 
+    char IP_addr[40];
+
     strncpy(IP_addr, get_wlan0_ip_addr(), 40);
-
-    char message[50] = {"# "};
-
-    printf("%s\n", message);
     
     ip_to_int_arr(IP_addr);
     
-    for (int i = 0; i < 4; i++)
-    {
-        printf("%d\n", ip_arr[i]);
-    }
+    printf("Split IP: %d.%d.%d.%d\n", ip_arr[0], ip_arr[1], ip_arr[2], ip_arr[3]);
+
+    printf("Original IP: %s\n", IP_addr);
     
     return 0;
 }
@@ -63,37 +59,6 @@ char * get_wlan0_ip_addr() {
    integer array containing all the parts of the IP
 */
 void ip_to_int_arr(char * IP_addr) {
-    const char delim[2] = ".";
-    char *token;
-
-    token = strtok(IP_addr, delim);
-    int i = 0;
-
-    while (token != NULL)
-    {
-        ip_arr[i] = atoi(token);
-        i++;
-        token = strtok(NULL, delim);
-    }
-
+    sscanf(IP_addr, "%d.%d.%d.%d\n", &ip_arr[0], &ip_arr[1], &ip_arr[2], &ip_arr[3]);
     return;
 }
-
-
-    // int fd;
-    // struct ifreq ifr;
-
-    // fd = socket(AF_INET, SOCK_DGRAM, 0);
-    
-    // /* I want to get an IPv4 IP address */
-    // ifr.ifr_addr.sa_family = AF_INET;
-    
-    // // I want IP address attached to "wlan0"
-    // strncpy(ifr.ifr_name, "wlan0", IFNAMSIZ-1);
-    
-    // ioctl(fd, SIOCGIFADDR, &ifr);
-    
-    // close(fd);
-    
-    // // display result
-    // printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
