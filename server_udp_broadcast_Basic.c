@@ -21,7 +21,7 @@
 #define IP_MAX_SIZE 20      // max size of IP address
 
 char * get_wlan0_ip_addr();
-void ip_to_int_arr(char * IP_addr);
+void ip_to_int_arr(char * IP_addr, int UQ1[4]);
 
 void error(const char *msg)
 {
@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
    int FLAG = 0;
    int recv_num = 0;
    int max_num = -1;
+   int max_ip = -1;
 
    if (argc < 2)
    {
@@ -79,7 +80,7 @@ int main(int argc, char *argv[])
    strncpy(rasp_ip_addr, get_wlan0_ip_addr(), MSG_SIZE);
 
    // Split up IP addr of raspberry pi into integers
-   ip_to_int_arr(rasp_ip_addr);
+   ip_to_int_arr(rasp_ip_addr, UQ1);
 
    fromlen = sizeof(struct sockaddr_in);	// size of structure
 
@@ -94,7 +95,7 @@ int main(int argc, char *argv[])
     	   error("recvfrom");
 
        // Compare strings to see if VOTE or WHOIS message was sent 
-       int Case1 = strncmp(buffer, "VOTE", 5);
+       int Case1 = strncmp(buffer, "VOTE", 4);
        int Case2 = strncmp(buffer, "WHOIS", 5);
        // If vote message is sent, generate your own vote
        if (Case1 == 0) {
@@ -102,41 +103,47 @@ int main(int argc, char *argv[])
             rand_num = rand() % 10;    // get random number 0-9
             char message[50];   // string to hold message
             strncpy(copy_rasp_ip_addr, get_wlan0_ip_addr(), MSG_SIZE);   // get another copy of IP address after splitting up original IP
-            sprintf(message, "# %d.%d.%d.%d %d\n", &UQ1[0], &UQ1[1], &UQ1[2], &UQ1[3], &rand_num);  // concatenate message
+            sprintf(message, "# %d.%d.%d.%d %d\n", UQ1[0], UQ1[1], UQ1[2], UQ1[3], rand_num);  // concatenate message
             addr.sin_addr.s_addr = inet_addr("128.206.19.255");		// broadcast address
             sendto(sock, message, 32, 0, (struct sockaddr *)&addr, fromlen);
             VOTED = 1;
-            max_num = 0;
+            max_num = -1;
+            max_ip = -1;
        }
        // If you have voted and you recieve a vote message from another board
-       if (buffer[0] == '#' & VOTED == 1) {
+       if (buffer[0] == '#' && VOTED == 1) {
             sscanf(buffer, "# %d.%d.%d.%d %d\n", &UQ2[0], &UQ2[1], &UQ2[2], &UQ2[3], &recv_num);
+            if (recv_num == max_num)
+            {
+                if (UQ2[3] > max_ip)
+                {
+                    max_ip = UQ2[3];
+                }
+            }
             if (recv_num > max_num)
             {
-                max_num = recv_num; // set new max if recieved number is larger
+                max_num = recv_num;
+                max_ip = UQ2[3];
             }
+            
             if (rand_num > max_num)
             {
                 FLAG = 1; // your rand num is greater, set to master
             }
-            if (rand_num < max_num)
+            else if (rand_num < max_num)
             {
                 FLAG = 0; // if your number is less, you're not the master
             }
             // Check IPs if random numbers are equal
-            if (rand_num == max_num)
+            else
             {
-                if (UQ1[3] > UQ2[3])
+                if (UQ1[3] >= max_ip)
                 {
-                    FLAG = 1; // your IP is Master
+                    FLAG =1;
                 }
-                if (UQ1[3] < UQ2[3])
+                else
                 {
-                    FLAG = 0; // your IP is no Master
-                }
-                if (UQ1[3] == UQ2[3])
-                {
-                    FLAG = 1; // means compared to own IP, so should be the master
+                    FLAG = 0;
                 }
             } 
        }
@@ -144,7 +151,7 @@ int main(int argc, char *argv[])
        if (Case2 == 0 && FLAG == 1)
        {
             char m_message[50];
-            sprintf(m_message, "Cameron on board with %s is the Master\n", copy_rasp_ip_addr);
+            sprintf(m_message, "Cameron %s is Master\n", copy_rasp_ip_addr);
             addr.sin_addr.s_addr = inet_addr("128.206.19.255");		// broadcast address
             sendto(sock, m_message, 32, 0, (struct sockaddr *)&addr, fromlen);
             VOTED = 0;
@@ -186,7 +193,7 @@ char * get_wlan0_ip_addr() {
 /* Function to convert raspberry pi IP address into
    integer array containing all the parts of the IP
 */
-void ip_to_int_arr(char * IP_addr) {
-    sscanf(IP_addr, "%d.%d.%d.%d\n", &ip_arr[0], &ip_arr[1], &ip_arr[2], &ip_arr[3]);
+void ip_to_int_arr(char * IP_addr, int UQ1[4]) {
+    sscanf(IP_addr, "%d.%d.%d.%d\n", &UQ1[0], &UQ1[1], &UQ1[2], &UQ1[3]);
     return;
 }
