@@ -113,6 +113,7 @@ int main(int argc, char *argv[])
        // If you have voted and you recieve a vote message from another board
        if (buffer[0] == '#' && VOTED == 1) {
             sscanf(buffer, "# %d.%d.%d.%d %d\n", &UQ2[0], &UQ2[1], &UQ2[2], &UQ2[3], &recv_num);
+            // If the received number is equal to max, determine the max ip
             if (recv_num == max_num)
             {
                 if (UQ2[3] > max_ip)
@@ -120,19 +121,21 @@ int main(int argc, char *argv[])
                     max_ip = UQ2[3];
                 }
             }
+            // If received num is greater than max, set max num and also max ip
             if (recv_num > max_num)
             {
                 max_num = recv_num;
                 max_ip = UQ2[3];
             }
-            
+            // If your number is greater than the max, you are master
             if (rand_num > max_num)
             {
-                FLAG = 1; // your rand num is greater, set to master
+                FLAG = 1;
             }
+            // If your number is less than max, you are not the master
             else if (rand_num < max_num)
             {
-                FLAG = 0; // if your number is less, you're not the master
+                FLAG = 0;
             }
             // Check IPs if random numbers are equal
             else
